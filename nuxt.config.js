@@ -2,7 +2,7 @@ import VuetifyLoaderPlugin from 'vuetify-loader/lib/plugin'
 import pkg from './package'
 
 export default {
-  mode: 'spa',
+  mode: 'universal',
 
   /*
    ** Headers of the page
@@ -45,13 +45,23 @@ export default {
   modules: [
     // Doc: https://axios.nuxtjs.org/usage
     '@nuxtjs/axios',
-    '@nuxtjs/pwa'
+    '@nuxtjs/pwa',
+    'nuxt-oauth'
   ],
+
   /*
    ** Axios module configuration
    */
   axios: {
     // See https://github.com/nuxt-community/axios-module#options
+  },
+
+  oauth: {
+    sessionName: 'mySession',
+    secretKey: process.env.SECRET_KEY,
+    oauthHost: process.env.OAUTH_HOST,
+    oauthClientID: process.env.OAUTH_CLIENT_ID,
+    oauthClientSecret: process.env.OAUTH_CLIENT_SECRET
   },
 
   /*
