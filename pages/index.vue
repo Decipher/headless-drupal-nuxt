@@ -36,7 +36,7 @@
             <v-form>
               <component
                 :is="field.type"
-                v-for="field in schema"
+                v-for="field of schema"
                 :key="field.id"
                 v-model="input[field.id]"
                 :field="field"
@@ -60,7 +60,8 @@ export default {
 
   data: () => ({
     // @TODO - Set default values.
-    input: {}
+    input: {},
+    result: null
   }),
 
   computed: {
@@ -128,7 +129,16 @@ export default {
         )
       }
 
-      return schema
+      // Sort the schema.
+      const sortedSchema = []
+      for (const field in schema) {
+        sortedSchema.push(schema[field])
+      }
+      sortedSchema.sort((a, b) => {
+        return a.weight - b.weight
+      })
+
+      return sortedSchema
     }
   },
 
@@ -163,6 +173,7 @@ export default {
 
     const subrequests = [
       // Entity Form Display.
+      // Requires the 'administer display modes' permission.
       {
         requestId: 'entity_form_display',
         uri:
@@ -171,6 +182,7 @@ export default {
         headers
       },
       // Field Config.
+      // Requires the 'administer ENTITY fields' permission.
       {
         requestId: 'field_config',
         uri:
@@ -221,9 +233,7 @@ export default {
         Authorization: `Bearer ${this.accessToken}`
       }
 
-      const result = await this.$axios.post(url, this.jsonapi, { headers })
-      // eslint-disable-next-line
-      console.log(result)
+      this.result = await this.$axios.post(url, this.jsonapi, { headers })
     }
   }
 }
