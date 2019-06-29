@@ -6,7 +6,7 @@
       </v-container>
     </v-content>
 
-    <v-footer :fixed="fixed" app>
+    <v-footer app>
       <span>&copy;<a href="https://realityloop.com">Realityloop</a> 2019</span>
     </v-footer>
   </v-app>

@@ -30,6 +30,13 @@ export default {
   loading: { color: '#fff' },
 
   /*
+   ** Environment variables
+   */
+  env: {
+    api_host: process.env.API_HOST
+  },
+
+  /*
    ** Global CSS
    */
   css: ['~/assets/style/app.styl'],
@@ -56,6 +63,9 @@ export default {
     // See https://github.com/nuxt-community/axios-module#options
   },
 
+  /*
+   ** OAuth module configuration
+   */
   oauth: {
     sessionName: 'mySession',
     secretKey: process.env.SECRET_KEY,
