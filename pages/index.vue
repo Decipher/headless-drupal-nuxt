@@ -83,8 +83,7 @@ export default {
           id: fieldName,
           settings: entityFormDisplay.settings,
           type: entityFormDisplay.type.replace(/_/g, '-'),
-          weight: entityFormDisplay.weight,
-          entityFormDisplay
+          weight: entityFormDisplay.weight
         }
       }
 
@@ -92,14 +91,20 @@ export default {
         // Skip field if not in the Entity form display.
         if (typeof schema[fieldConfig.fieldName] === 'undefined') continue
 
+        // Merge field config attributes into schema.
         schema[fieldConfig.fieldName] = Object.assign(
           schema[fieldConfig.fieldName],
           {
             label: fieldConfig.label,
             description: fieldConfig.description,
-            required: fieldConfig.required,
-            fieldConfig
+            required: fieldConfig.required
           }
+        )
+
+        // Merge field config settings into schema.
+        schema[fieldConfig.fieldName].settings = Object.assign(
+          schema[fieldConfig.fieldName].settings,
+          fieldConfig.settings
         )
       }
 
@@ -108,12 +113,14 @@ export default {
         if (typeof schema[fieldStorageConfig.fieldName] === 'undefined')
           continue
 
-        schema[fieldStorageConfig.fieldName] = Object.assign(
-          schema[fieldStorageConfig.fieldName],
-          {
-            cardinality: fieldStorageConfig.cardinality,
-            fieldStorageConfig
-          }
+        // Merge field storage config attributes into schema.
+        schema[fieldStorageConfig.fieldName].cardinality =
+          fieldStorageConfig.cardinality
+
+        // Merge field storage config settings into schema.
+        schema[fieldStorageConfig.fieldName].settings = Object.assign(
+          schema[fieldStorageConfig.fieldName].settings,
+          fieldStorageConfig.settings
         )
       }
 
