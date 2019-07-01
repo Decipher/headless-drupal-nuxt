@@ -1,82 +1,70 @@
 <template>
   <v-container grid-list-sm fluid>
     <v-layout align-center column>
-      <v-flex xs12 sm8 md6>
-        <v-card>
-          <v-card-title class="headline">DEMO: Headless Blog</v-card-title>
-
-          <v-card-text></v-card-text>
-
-          <v-card-actions>
-            <v-spacer />
-            <v-btn v-if="!accessToken" color="primary" flat @click="login">
-              Log In
-            </v-btn>
-            <v-btn v-else color="primary" flat @click="logout">Log Out</v-btn>
-          </v-card-actions>
-        </v-card>
-      </v-flex>
-
-      <v-flex xs12 sm8 md6>
-        <v-card color="warning">
-          <v-card-text>
-            <ul>
-              <li>Keep calm and clear the cache</li>
-              <li>Log out and in again</li>
-            </ul>
-          </v-card-text>
-        </v-card>
-      </v-flex>
-
-      <v-flex xs12 sm8 md6>
-        <v-card v-if="accessToken" xs12>
-          <v-card-title class="headline">Add content</v-card-title>
-
-          <v-card-text>
-            <v-form>
-              <component
-                :is="field.type"
-                v-for="field of schema"
-                :key="field.id"
-                v-model="input[field.id]"
-                :field="field"
-              />
-
-              <v-btn @click="submit">Submit</v-btn>
-            </v-form>
-          </v-card-text>
-        </v-card>
-      </v-flex>
+      <!-- Blog. -->
+      <v-timeline>
+        <node-card
+          v-for="node of node__blog"
+          :key="node.id"
+          :node="node"
+          @delete="deleteItem(node.id)"
+        />
+      </v-timeline>
     </v-layout>
+
+    <!-- Create dialog. -->
+    <v-dialog v-if="accessToken" v-model="dialog">
+      <template v-slot:activator="{ on }">
+        <v-btn bottom color="primary" fixed fab large right small v-on="on">
+          <v-icon>add</v-icon>
+        </v-btn>
+      </template>
+
+      <v-card xs12>
+        <v-card-title class="headline">Add content</v-card-title>
+
+        <v-card-text>
+          <v-form>
+            <component
+              :is="field.type"
+              v-for="field of schema.fields"
+              :key="field.id"
+              v-model="input[field.id]"
+              :field="field"
+            />
+
+            <v-btn @click="createNode">Submit</v-btn>
+          </v-form>
+        </v-card-text>
+      </v-card>
+    </v-dialog>
   </v-container>
 </template>
 
 <script>
-import { Deserializer, Serializer } from 'jsonapi-serializer'
-import components from '~/components'
+import { Deserializer } from 'jsonapi-serializer'
+
+import api from '@/mixins/api'
+import components from '@/components'
 
 export default {
   components,
 
+  mixins: [api],
+
   data: () => ({
+    dialog: false,
     // @TODO - Set default values.
     input: {},
     result: null
   }),
 
   computed: {
-    accessToken() {
-      return this.$store.state.oauth.accessToken
-    },
-
-    jsonapi() {
-      const options = {
-        attributes: Object.keys(this.schema)
-      }
-
-      return new Serializer('node--blog', options).serialize(this.input)
-    },
-
+    /**
+     * The processed Field schema.
+     *
+     * @returns {Array}
+     */
     schema() {
       const schema = {}
 
@@ -138,16 +126,20 @@ export default {
         return a.weight - b.weight
       })
 
-      return sortedSchema
+      return { fields: sortedSchema, keys: Object.keys(schema) }
     }
   },
 
+  /**
+   * Seeds the component with all required API data.
+   *
+   * @param $axios
+   * @param store
+   * @returns {Promise<void>}
+   */
   async asyncData({ $axios, store }) {
     const data = {}
     const accessToken = store.state.oauth.accessToken
-
-    // Ensure user is logged in.
-    if (!accessToken) return data
 
     // Subrequests URL.
     const url = `http://${process.env.api_host}/subrequests?_format=json`
@@ -155,50 +147,65 @@ export default {
     // Subrequests headers.
     const headers = {
       Accept: 'application/vnd.api+json',
-      'Content-Type': 'application/vnd.api+json',
-      Authorization: `Bearer ${accessToken}`
+      'Content-Type': 'application/vnd.api+json'
     }
 
-    // // Subrequests.
-    // 1. Load 'Entity form display' by ID for layout information.
-    // 2. Load 'Field config' entries by entity type and bundle for instance
-    //    settings.
-    // 3. Load 'Field storage config' entries by entity type for base
-    //    configuration.
-
-    // Note: This approach is only recommended for demonstration purposes, it
-    //       may not work with more than 50 fields across multiple content
-    //       types, and would not work with more than 50 fields in the Blog
-    //       content type.
-
+    // Anonymous subrequests.
+    // 1. Load all Blog nodes.
     const subrequests = [
+      {
+        requestId: 'node__blog',
+        uri: '/api/node/blog?sort=-created',
+        action: 'view',
+        headers
+      }
+    ]
+
+    // Load field schema information if user is authenticated.
+    if (accessToken) {
+      headers.Authorization = `Bearer ${accessToken}`
+
+      // Field schema subrequests.
+      // 1. Load 'Entity form display' by ID for layout information.
+      // 2. Load 'Field config' entries by entity type and bundle for instance
+      //    settings.
+      // 3. Load 'Field storage config' entries by entity type for base
+      //    configuration.
+
+      // Note: This approach is only recommended for demonstration purposes, it
+      //       may not work with more than 50 fields across multiple content
+      //       types, and would not work with more than 50 fields in the Blog
+      //       content type.
+
       // Entity Form Display.
       // Requires the 'administer display modes' permission.
-      {
+      subrequests.push({
         requestId: 'entity_form_display',
         uri:
           '/api/entity_form_display/entity_form_display?filter[drupal_internal__id]=node.blog.default',
         action: 'view',
         headers
-      },
+      })
+
       // Field Config.
       // Requires the 'administer ENTITY fields' permission.
-      {
+      subrequests.push({
         requestId: 'field_config',
         uri:
           '/api/field_config/field_config?filter[bundle]=blog&filter[entity_type]=node',
         action: 'view',
         headers
-      },
+      })
+
       // Field storage config.
-      {
+      subrequests.push({
         requestId: 'field_storage_config',
         uri:
           '/api/field_storage_config/field_storage_config?filter[entity_type]=node',
         action: 'view',
         headers
-      }
-    ]
+      })
+    }
 
     const result = await $axios.post(url, subrequests, { headers })
 
@@ -216,24 +223,12 @@ export default {
   },
 
   methods: {
-    login() {
-      this.$login()
-    },
-
-    logout() {
-      this.$logout()
-    },
-
-    async submit() {
-      const url = `http://${process.env.api_host}/api/node/blog`
-
-      const headers = {
-        Accept: 'application/vnd.api+json',
-        'Content-Type': 'application/vnd.api+json',
-        Authorization: `Bearer ${this.accessToken}`
+    deleteItem(id) {
+      this.deleteNode(id)
+      for (const delta in this.node__blog) {
+        const node = this.node__blog[delta]
+        if (node.id === id) this.node__blog.splice(delta, 1)
       }
-
-      this.result = await this.$axios.post(url, this.jsonapi, { headers })
     }
   }
 }
