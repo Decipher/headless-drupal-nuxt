@@ -27,7 +27,7 @@
           <v-form>
             <component
               :is="field.type.replace(/_/g, '-')"
-              v-for="field of schema.fields"
+              v-for="field of $drupalJSONAPIEntities().node.blog.fields"
               :key="field.id"
               v-model="input[field.id]"
               :field="field"
@@ -42,6 +42,8 @@
 </template>
 
 <script>
+import { Deserializer } from 'jsonapi-serializer'
+
 import api from '@/mixins/api'
 import components from '@/components'
 
@@ -57,10 +59,41 @@ export default {
     result: null
   }),
 
-  computed: {
-    schema() {
-      return this.$drupalJSONAPIEntities().node.blog
+  async asyncData({ $axios, store }) {
+    const data = {}
+
+    // Subrequests URL.
+    const url = `http://${process.env.api_host}/subrequests?_format=json`
+
+    // Subrequests headers.
+    const headers = {
+      Accept: 'application/vnd.api+json',
+      'Content-Type': 'application/vnd.api+json'
     }
+
+    // Load all Blog nodes.
+    const subrequests = [
+      {
+        requestId: 'node__blog',
+        uri: '/api/node/blog?sort=-created',
+        action: 'view',
+        headers
+      }
+    ]
+
+    const result = await $axios.post(url, subrequests, { headers })
+
+    for (const id in result.data) {
+      // Parse the JSON response.
+      const jsonData = JSON.parse(result.data[id].body)
+
+      // Deserialize the data.
+      data[id] = await new Deserializer({
+        keyForAttribute: 'camelCase'
+      }).deserialize(jsonData)
+    }
+
+    return data
   },
 
   methods: {
