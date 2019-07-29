@@ -53,6 +53,19 @@ export default {
     // Doc: https://axios.nuxtjs.org/usage
     '@nuxtjs/axios',
     '@nuxtjs/pwa',
+    // Drupal JSON:API entities.
+    [
+      'drupal_jsonapi_entities/nuxt',
+      {
+        baseUrl: `http://${process.env.API_HOST}`,
+        auth: {
+          clientId: process.env.OAUTH_CLIENT_ID,
+          clientSecret: process.env.OAUTH_CLIENT_SECRET,
+          user: process.env.OAUTH_USERNAME,
+          pass: process.env.OAUTH_PASSWORD
+        }
+      }
+    ],
     'nuxt-oauth'
   ],
 
@@ -72,6 +85,10 @@ export default {
     oauthHost: process.env.OAUTH_HOST,
     oauthClientID: process.env.OAUTH_CLIENT_ID,
     oauthClientSecret: process.env.OAUTH_CLIENT_SECRET
+  },
+
+  drupalJSONAPIEntities: {
+    node: ['blog']
   },
 
   /*
